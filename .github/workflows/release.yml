@@ -81,12 +81,12 @@ jobs:
       - name: Build and push
         run: |
           echo "Building and pushing"
-          make docker-buildx VERSION=${{ needs.create-version.outputs.next_version^ }}
+          make docker-buildx VERSION=${{ needs.create-version.outputs.next_version }}
 
       - name: Make install.yaml
         run: |
           echo "Creating install.yaml"
-          make build-installer VERSION=${{ needs.create-version.outputs.next_version^ }}
+          make build-installer VERSION=${{ needs.create-version.outputs.next_version }}
 
       - name: Archive install.yaml
         uses: actions/upload-artifact@v4
@@ -114,13 +114,13 @@ jobs:
       - name: create tag and push
         run: |
           echo "Creating tag and pushing"
-          git tag -a ${{ needs.create-version.outputs.next_version^ }} -m "Release ${{ needs.create-version.outputs.next_version^ }}"
-          git push origin ${{ needs.create-version.outputs.next_version^ }}
+          git tag -a ${{ needs.create-version.outputs.next_version }} -m "Release ${{ needs.create-version.outputs.next_version }}"
+          git push origin ${{ needs.create-version.outputs.next_version }}
 
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ needs.create-version.outputs.next_version^ }}
+          tag: ${{ needs.create-version.outputs.next_version }}
           generateReleaseNotes: true
           artifacts: dist/*
           draft: true
