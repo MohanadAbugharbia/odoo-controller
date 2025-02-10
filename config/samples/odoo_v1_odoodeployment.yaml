@@ -1,0 +1,49 @@
+apiVersion: odoo.abugharbia.com/v1
+kind: OdooDeployment
+metadata:
+  name: odoodeployment-sample
+spec:
+  name: odoo-sample
+  replicas: 1
+  image: mohanadabugharbia/odoo:18
+  database:
+    # host: postgresql
+    hostFromSecret:
+      name: cluster-1-app
+      key: host
+    # port: 5432
+    portFromSecret:
+      name: cluster-1-app
+      key: port
+    # name: odoo
+    nameFromSecret:
+      name: cluster-1-app
+      key: dbname
+    # user: odoo
+    userFromSecret:
+      name: cluster-1-app
+      key: user
+    passwordFromSecret:
+      name: cluster-1-app
+      key: password
+    ssl: false
+    maxConn: 64
+  config:
+    debugMode: false
+    dataDir: /var/lib/odoo
+    withoutDemo: true
+    proxyMode: false
+    workers: 2
+    limitRequest: 8192
+    limitTimeCpu: 60
+    limitTimeReal: 120
+    limitMemorySoft: 2147483648
+    limitMemoryHard: 2684354560
+  odooFilestore:
+    name: odoo-filestore
+    storageClassName: default
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+  modules:
+    - base

@@ -1,0 +1,23 @@
+# permissions for end users to view odoodeployments.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: odoo-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: odoodeployment-viewer-role
+rules:
+- apiGroups:
+  - odoo.abugharbia.com
+  resources:
+  - odoodeployments
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - odoo.abugharbia.com
+  resources:
+  - odoodeployments/status
+  verbs:
+  - get
