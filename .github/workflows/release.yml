@@ -26,11 +26,7 @@ jobs:
       - name: Get the next version
         run: |
           echo "Getting current version"
-          current_version=$(git describe --tags --abbrev=0)
-          if [[ $? -ne 0 ]]; then
-            echo "No tags found, setting version to 0.0.0"
-            current_version="0.0.0"
-          fi
+          current_version=$(git describe --tags --abbrev=0 || echo '0.0.0')
 
           echo "Current version: $current_version"
 
