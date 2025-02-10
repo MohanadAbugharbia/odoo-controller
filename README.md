@@ -1,10 +1,34 @@
-# odoo-operator
-// TODO(user): Add simple overview of use/purpose
+# Odoo-Operator
+This is a Kubernetes operator for Odoo controlling the lifecycle of an Odoo deployment inside a kubernetes cluster.
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+This project is a Kubernetes operator that manages the lifecycle of an Odoo deployment inside a Kubernetes cluster.
 
-## Getting Started
+Checkout the sample [OdooDeployment](config/samples/odoo_v1_odoodeployment.yaml) for an example of how to use this operator.
+
+Check out the [Odoo](https://www.odoo.com/) website for more information on Odoo.
+
+## Features
+
+| Feature | status |
+|---|---|
+| Deploy | available |
+| Install modules | available |
+| Configure odoo | available |
+| Backup | -- |
+| Restore | -- |
+
+Feel free to request more features by creating an [issue](https://github.com/MohanadAbugharbia/odoo-controller/issues/new?template=Blank+issue)
+
+## Installation
+
+Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
+
+```sh
+kubectl apply -f https://raw.githubusercontent.com/MohanadAbugharbia/odoo-controller/refs/heads/main/dist/install.yaml
+```
+
+## Getting Started as a contributor
 
 ### Prerequisites
 - go version v1.22.0+
@@ -86,11 +110,12 @@ its dependencies.
 Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/odoo-operator/<tag or branch>/dist/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/MohanadAbugharbia/odoo-controller/refs/heads/main/dist/install.yaml
 ```
 
 ## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
+
+Please first create an issue with your planned contribution. Anything and everything is welcome.
 
 **NOTE:** Run `make help` for more information on all potential `make` targets
 
