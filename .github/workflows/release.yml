@@ -39,13 +39,13 @@ jobs:
           VNUM2=${CURRENT_VERSION_PARTS[1]}
           VNUM3=${CURRENT_VERSION_PARTS[2]}
 
-          if [[ $VERSION == 'major' ]]
+          if [[ ${{ github.event.inputs.version }} == 'major' ]]
           then
             VNUM1=$((VNUM1+1))
-          elif [[ $VERSION == 'minor' ]]
+          elif [[ ${{ github.event.inputs.version }} == 'minor' ]]
           then
             VNUM2=$((VNUM2+1))
-          elif [[ $VERSION == 'patch' ]]
+          elif [[ ${{ github.event.inputs.version }} == 'patch' ]]
           then
             VNUM3=$((VNUM3+1))
           else
