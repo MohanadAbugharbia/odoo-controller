@@ -26,24 +26,38 @@ jobs:
       - name: Get the next version
         run: |
           echo "Getting current version"
-          current_version=$(git describe --tags --abbrev=0 || echo '0.0.0')
+          CURRENT_VERSION=$(git describe --tags --abbrev=0 || echo '0.0.0')
 
-          echo "Current version: $current_version"
+          echo "Current version: $CURRENT_VERSION"
 
           echo "Getting next version"
-          if [[ ${{ github.event.inputs.version }} == 'major' ]]; then
-            next_version=$(semver bump major $current_version)
-          elif [[ ${{ github.event.inputs.version }} == 'minor' ]]; then
-            next_version=$(semver bump minor $current_version)
-          elif [[ ${{ github.event.inputs.version }} == 'patch' ]]; then
-            next_version=$(semver bump patch $current_version)
+          # replace . with space so can split into an array
+          CURRENT_VERSION_PARTS=(${CURRENT_VERSION//./ })
+
+          # get number parts
+          VNUM1=${CURRENT_VERSION_PARTS[0]}
+          VNUM2=${CURRENT_VERSION_PARTS[1]}
+          VNUM3=${CURRENT_VERSION_PARTS[2]}
+
+          if [[ $VERSION == 'major' ]]
+          then
+            VNUM1=$((VNUM1+1))
+          elif [[ $VERSION == 'minor' ]]
+          then
+            VNUM2=$((VNUM2+1))
+          elif [[ $VERSION == 'patch' ]]
+          then
+            VNUM3=$((VNUM3+1))
           else
-            echo "Invalid version"
+            echo "No version type (https://semver.org/) or incorrect type specified, try: -v [major, minor, patch]"
             exit 1
           fi
 
-          echo "Next version: $next_version"
-          echo "::set-output name=next_version::$next_version"
+          # create new tag
+          NEXT_VERSION="$VNUM1.$VNUM2.$VNUM3"
+
+          echo "Next version: $NEXT_VERSION"
+          echo "::set-output name=next_version::$NEXT_VERSION"
 
   build-push:
     name: Build and push
@@ -67,12 +81,12 @@ jobs:
       - name: Build and push
         run: |
           echo "Building and pushing"
-          make docker-buildx VERSION=${{ needs.create-version.outputs.next_version }}
+          make docker-buildx VERSION=${{ needs.create-version.outputs.next_version^ }}
 
       - name: Make install.yaml
         run: |
           echo "Creating install.yaml"
-          make build-installer VERSION=${{ needs.create-version.outputs.next_version }}
+          make build-installer VERSION=${{ needs.create-version.outputs.next_version^ }}
 
       - name: Archive install.yaml
         uses: actions/upload-artifact@v4
@@ -100,13 +114,13 @@ jobs:
       - name: create tag and push
         run: |
           echo "Creating tag and pushing"
-          git tag -a ${{ needs.create-version.outputs.next_version }} -m "Release ${{ needs.create-version.outputs.next_version }}"
-          git push origin ${{ needs.create-version.outputs.next_version }}
+          git tag -a ${{ needs.create-version.outputs.next_version^ }} -m "Release ${{ needs.create-version.outputs.next_version^ }}"
+          git push origin ${{ needs.create-version.outputs.next_version^ }}
 
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ needs.create-version.outputs.next_version }}
+          tag: ${{ needs.create-version.outputs.next_version^ }}
           generateReleaseNotes: true
           artifacts: dist/*
           draft: true
