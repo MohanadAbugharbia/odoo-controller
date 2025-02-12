@@ -109,6 +109,8 @@ jobs:
     needs:
       - create-version
       - build-push
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
