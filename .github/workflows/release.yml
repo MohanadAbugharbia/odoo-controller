@@ -12,7 +12,11 @@ on:
           - 'patch'
           - 'minor'
           - 'major'
-
+      draft:
+        description: 'Create a draft release'
+        required: false
+        type: 'boolean'
+        default: false
 
 
 jobs:
@@ -135,4 +139,5 @@ jobs:
           tag: ${{ needs.create-version.outputs.next_version }}
           generateReleaseNotes: true
           artifacts: dist/*
-          draft: true
+          draft: ${{ github.event.inputs.draft }}
+          makeLatest: true
