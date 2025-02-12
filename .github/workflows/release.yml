@@ -122,6 +122,8 @@ jobs:
       - name: create tag and push
         run: |
           echo "Creating tag and pushing"
+          git config --local user.email "github@action.com"
+          git config --local user.name "GitHub Action"
           git tag -a ${{ needs.create-version.outputs.next_version }} -m "Release ${{ needs.create-version.outputs.next_version }}"
           git push origin ${{ needs.create-version.outputs.next_version }}
 
