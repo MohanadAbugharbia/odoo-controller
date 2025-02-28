@@ -4,7 +4,7 @@ This is a Kubernetes operator for Odoo controlling the lifecycle of an Odoo depl
 ## Description
 This project is a Kubernetes operator that manages the lifecycle of an Odoo deployment inside a Kubernetes cluster.
 
-Checkout the sample [OdooDeployment](config/samples/odoo_v1_odoodeployment.yaml) for an example of how to use this operator.
+Check out the sample [OdooDeployment](config/samples/odoo_v1_odoodeployment.yaml) for an example of how to use this operator.
 
 Check out the [Odoo](https://www.odoo.com/) website for more information on Odoo.
 
@@ -25,7 +25,7 @@ Feel free to request more features by creating an [issue](https://github.com/Moh
 Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
 
 ```sh
-kubectl apply -f https://raw.githubusercontent.com/MohanadAbugharbia/odoo-controller/refs/heads/main/dist/install.yaml
+kubectl apply -f https://github.com/mohanadAbugharbia/odoo-controller/releases/latest/download/install.yaml
 ```
 
 ## Getting Started as a contributor
