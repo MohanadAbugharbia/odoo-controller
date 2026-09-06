@@ -11,7 +11,10 @@ Check out the [Odoo](https://www.odoo.com/) website for more information on Odoo
 |---|---|---|
 | Deploy | available | Create and manage Odoo Deployments, Services, and PVCs |
 | Module installation | available | Initialize the database and install Odoo modules via a Kubernetes Job |
-| Configure Odoo | available | Manage `odoo.conf` settings dynamically via the CR spec |
+| Configure Odoo | available | Manage `odoo.conf` settings dynamically via the CR spec (`listDb`, `dbFilter`, `serverWideModules`, `loadLanguages`, `extraOptions`, …) |
+| Database provisioning | available | Create the PostgreSQL database when it is missing (`createPolicy`), adopt it when it exists, and drop it on deletion only when the operator created it (`deletionPolicy`) |
+| Upgrades | available | Run `-u` maintenance Jobs automatically on image changes or on demand through `spec.upgrade.token`; the Deployment is scaled to zero while the Job runs |
+| Safety defaults | available | `list_db = False` + `dbfilter` lockdown, retained filestore and database by default, HTTP probes, resources, env, pod security context, Job deadlines/TTL, CEL-validated spec, `Ready`/`Degraded` conditions and `kubectl get` columns |
 | Backup | planned | Snapshot Odoo filestore and database |
 | Restore | planned | Restore from a snapshot |
 
@@ -24,6 +27,80 @@ Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project
 ```sh
 kubectl apply -f https://github.com/mohanadAbugharbia/odoo-operator/releases/latest/download/install.yaml
 ```
+
+## Lifecycle
+
+An `OdooDeployment` moves through `status.phase`:
+
+| Phase | Meaning |
+|---|---|
+| `Pending` | The database connection or the database itself is not settled yet (see the `Degraded` condition for the reason). |
+| `Initializing` | The `<name>-init` Job installs `spec.modules` (`-i`, with `--load-language` from `spec.config.loadLanguages`) on `spec.image`. No Deployment exists yet. |
+| `Upgrading` | The Deployment is scaled to zero and a `<name>-upgrade-<hash>` Job runs `-i <new modules>` / `-u <spec.upgrade.modules>` on the new image. |
+| `Running` | The Deployment runs `status.appliedImage`; `Ready` is True once the requested replicas are available (or `spec.replicas` is 0). |
+| `Failed` | A maintenance Job failed. Inspect it with `kubectl logs job/<name>`; deleting the Job retries it. |
+
+Conditions: `Ready`, `DatabaseReady`, `Initialized` and `Degraded` (True only when
+something is wrong; its reason names the problem, e.g. `DatabaseMissing`,
+`InitJobFailed`, `QuotaExceeded`, `DatabaseDropFailed`).
+
+### Database provenance
+
+- On the first reconcile the operator looks the database up. If it exists it is
+  **adopted** (`status.database.provisionedBy: external`). If it is missing and
+  `spec.database.createPolicy` is `IfNotExists` (default) the operator creates
+  it — `CREATE DATABASE … ENCODING 'unicode' LC_COLLATE 'C' LC_CTYPE 'C' TEMPLATE template0`,
+  the same shape Odoo uses — and tags it with the comment
+  `odoo-operator:<namespace>/<name>` (`provisionedBy: operator`).
+- `spec.database.deletionPolicy: Delete` adds the finalizer
+  `odoo.abugharbia.com/database`. On deletion the operator stops the pods and
+  drops the database **only if** it recorded `provisionedBy: operator` **and**
+  the database comment still equals its tag. A CR pointing at a pre-existing
+  database never drops it, whatever the policy says.
+- `spec.database.name` (and `nameFromSecret`) are immutable so a rename can
+  never orphan or drop the wrong database.
+- `spec.odooFilestore.deletionPolicy` works the same way for the filestore PVC
+  (Retain by default).
+
+### Upgrades
+
+- `spec.upgrade.onImageChange: true` (default): every `spec.image` change runs
+  an upgrade Job with `-u <spec.upgrade.modules>` before the Deployment rolls
+  to the new image. New entries in `spec.modules` are installed in the same Job.
+- Empty `spec.upgrade.modules` rolls the new image without a Job.
+- For production set `onImageChange: false` and bump `spec.upgrade.token` to
+  run the upgrade on demand.
+- `spec.jobs` bounds the Jobs (`activeDeadlineSeconds`, `ttlSecondsAfterFinished`,
+  `backoffLimit`).
+
+### Container command
+
+`spec.odooCommand` (default `["odoo"]`) plus `-c /opt/odoo/odoo.conf` becomes
+the container `command`, which **replaces the image ENTRYPOINT**. Images whose
+entrypoint script injects database flags (e.g. the official image's
+`entrypoint.sh`) are bypassed on purpose: the operator's rendered `odoo.conf`
+is the only configuration source. The image's own `addons_path` and
+`server_wide_modules` must therefore be re-expressed in
+`spec.config.extraAddonsPaths` and `spec.config.serverWideModules`.
+
+## Upgrading to 0.3.0
+
+- **`list_db` is now `False` by default** and `dbfilter = ^<db_name>$` is
+  rendered, so an instance only sees its own database. Set
+  `spec.config.listDb: true` (and optionally `dbFilter`) to keep the database
+  manager.
+- `spec.database.ssl` is rendered as `db_sslmode = require` / `disable`
+  (previously it was ignored and Odoo used `prefer`).
+- `spec.database.name` and `spec.database.nameFromSecret` are immutable.
+- `spec.replicas`, `spec.config.workers`, `maxCronThreads`, `withoutDemo` and
+  `proxyMode` are pointer fields: `0` and `false` are now honoured.
+- Existing CRs roll their pods once (new labels, config-hash annotation,
+  probes) and adopt the running image as `status.appliedImage` without a Job.
+  Their database is adopted as `external` and is never dropped.
+- The `OperatorDegraded`/`OperatorSucceeded` conditions are replaced by
+  `Ready`, `DatabaseReady`, `Initialized` and `Degraded`.
+- The admin and config Secrets and both Services are now owned by the CR and
+  are garbage collected with it.
 
 ## Getting Started as a contributor
 
