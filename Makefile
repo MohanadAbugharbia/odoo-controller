@@ -115,9 +115,21 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	go vet ./...
 
+# Packages whose statements coverage is measured. Without -coverpkg, `go test`
+# instruments only the package under test, so a helper called by another
+# package's tests counts as uncovered: that alone understated this project by
+# ~25 points (pkg/utils and internal/database read as near-zero while the
+# controller suites exercised them constantly).
+#
+# ./cmd/... is deliberately absent. It is package main, so no test binary
+# imports it and listing it only makes `go test` synthesize a coverage-only
+# run of a package with no tests. Test scaffolding under test/ is excluded for
+# the same reason it is not shipped.
+COVERPKG ?= ./api/...,./internal/...,./pkg/...
+
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests. Pass GO_TEST_FLAGS=-json for a machine-readable stream.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v /e2e) -coverpkg=$(COVERPKG) -coverprofile cover.out
 
 # The same summary CI renders, locally. `|| status=...` keeps .SHELLFLAGS's
 # errexit from aborting on a red suite: a failing run is exactly when the

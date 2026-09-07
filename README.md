@@ -110,6 +110,31 @@ is the only configuration source. The image's own `addons_path` and
 - kubectl version v1.28.0+.
 - Access to a Kubernetes v1.28.0+ cluster.
 
+### Running the tests
+
+```sh
+make test
+```
+
+This runs the unit suites and the envtest ones (the Kubernetes binaries are
+downloaded on demand). Coverage is written to `cover.out` and measured with
+`-coverpkg` across every shipped package, so a helper exercised by another
+package's suite is credited to it; measuring per-package instead understated
+the project by roughly 25 points.
+
+The `internal/database` tests that need a real PostgreSQL skip unless one is
+configured, because they assert the SQL the provisioner emits, the `COMMENT`
+that marks operator-owned databases and the refusal to drop a database
+carrying somebody else's comment. CI starts a `postgres:16` service for them.
+To run them locally against any throwaway server:
+
+```sh
+TEST_PG_HOST=127.0.0.1 TEST_PG_PORT=5432 \
+TEST_PG_USER=postgres TEST_PG_PASSWORD=postgres make test
+```
+
+`make test-e2e` additionally needs Docker and kind, and is not part of CI.
+
 ### To Deploy on the cluster
 **Build and push your image to the location specified by `IMG`:**
 

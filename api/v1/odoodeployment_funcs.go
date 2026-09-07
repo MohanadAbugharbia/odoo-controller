@@ -680,20 +680,6 @@ func (o *OdooDeployment) GetMaintenanceJobTemplate(initModules, upgradeModules [
 	return job
 }
 
-func (o *OdooConfig) GetOdooConfigSecretTemplate(
-	name, namespace, serializedOdooConfig string,
-) corev1.Secret {
-	return corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Data: map[string][]byte{
-			odooConfigKey: []byte(serializedOdooConfig),
-		},
-	}
-}
-
 func (o *OdooDeployment) GetPvcTemplate() corev1.PersistentVolumeClaim {
 	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -737,32 +723,6 @@ func (o *OdooDeployment) CreateOdooAdminPasswordSecretNamespacedName() types.Nam
 // was named by the user (and therefore is not owned by the OdooDeployment).
 func (o *OdooDeployment) AdminPasswordSecretIsUserNamed() bool {
 	return o.Spec.Config.AdminPasswordSecretName != ""
-}
-
-func (o *OdooConfig) GetOdooAdminPasswordSecretTemplate(
-	defaultSecretName string,
-	defaultSecretNamespace string,
-) (corev1.Secret, error) {
-	randomPassword, err := utils.GenerateSecurePassword()
-	if err != nil {
-		return corev1.Secret{}, err
-	}
-	secretName := ""
-	secretKey := "password"
-	if o.AdminPasswordSecretName != "" {
-		secretName = o.AdminPasswordSecretName
-	} else {
-		secretName = defaultSecretName
-	}
-	return corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: defaultSecretNamespace,
-		},
-		Data: map[string][]byte{
-			secretKey: []byte(randomPassword),
-		},
-	}, nil
 }
 
 func (o *OdooDeployment) GetHttpServiceName() string {
@@ -873,33 +833,6 @@ func (o *OdooDeployment) GetDeploymentTemplate(image string, replicas int32, con
 			ProgressDeadlineSeconds: &progressDeadlineSeconds,
 		},
 	}
-}
-
-// RenderOdooConfig resolves the database connection details and renders odoo.conf.
-func (o *OdooDeployment) RenderOdooConfig(
-	client client.Client,
-	ctx context.Context,
-	adminPassword string,
-) (string, error) {
-	dbConnectionDetails, err := o.Spec.Database.GetDbConnectionDetails(client, ctx, o.Namespace)
-	if err != nil {
-		return "", err
-	}
-	return o.Spec.Config.GetSerializedOdooConfig(adminPassword, dbConnectionDetails), nil
-}
-
-// CreateOdooConfigSecretObj renders odoo.conf into the config Secret template.
-func (o *OdooDeployment) CreateOdooConfigSecretObj(
-	client client.Client,
-	ctx context.Context,
-	adminPassword string,
-) (corev1.Secret, error) {
-	serialized, err := o.RenderOdooConfig(client, ctx, adminPassword)
-	if err != nil {
-		return corev1.Secret{}, err
-	}
-	namespacedName := o.CreateOdooConfigSecretNamespacedName()
-	return o.Spec.Config.GetOdooConfigSecretTemplate(namespacedName.Name, namespacedName.Namespace, serialized), nil
 }
 
 // UsesSecret checks whether a given secret is used by a Cluster.
