@@ -54,6 +54,11 @@ IMG ?= ghcr.io/mohanadabugharbia/odoo-operator:$(VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.34.0
 
+# Extra flags for `go test` in the test target. CI passes -json and renders the
+# event stream with hack/test-summary.py; see "Continuous integration" in the
+# README.
+GO_TEST_FLAGS ?=
+
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
 GOBIN=$(shell go env GOPATH)/bin
@@ -111,8 +116,18 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 .PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+test: manifests generate fmt vet envtest ## Run tests. Pass GO_TEST_FLAGS=-json for a machine-readable stream.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test $(GO_TEST_FLAGS) $$(go list ./... | grep -v /e2e) -coverprofile cover.out
+
+# The same summary CI renders, locally. `|| status=...` keeps .SHELLFLAGS's
+# errexit from aborting on a red suite: a failing run is exactly when the
+# summary is worth having, and the target still exits with the test status.
+.PHONY: test-summary
+test-summary: ## Run tests and render the CI Markdown summary to test-summary.md.
+	status=0; $(MAKE) test GO_TEST_FLAGS=-json | tee go-test.json || status=$$?; \
+		python3 hack/test-summary.py go-test.json --coverage-profile cover.out \
+			--module "$$(go list -m)" > test-summary.md; \
+		cat test-summary.md; exit $$status
 
 # Utilize Kind or modify the e2e tests to load the image locally, enabling compatibility with other vendors.
 .PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
